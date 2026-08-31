@@ -511,14 +511,21 @@ class MercariClient:
 # Grailed client
 # --------------------------------------------------------------------------
 # Grailed's search is an Algolia index. grailed.com/api/algolia/keys hands
-# out a short-lived (~24h) public search key -- that endpoint answers plain
-# requests even though the site HTML is behind Cloudflare -- and the Algolia
-# host itself has no bot protection.
+# out a short-lived (~1h) public search key. That key endpoint sits behind
+# Cloudflare and blocks datacenter IPs (incl. GitHub Actions runners) with a
+# 403 -- it only answers from a residential IP. The Algolia host itself has
+# no such block. So Grailed works when the bot runs from home / a
+# residential IP, or when GRAILED_PROXY points at one; from a plain cloud
+# runner the Grailed searches just skip (logged once, run stays green).
 
 GRAILED_KEYS_URL = "https://www.grailed.com/api/algolia/keys"
 GRAILED_ALGOLIA_URL = "https://mnrwefss2q-dsn.algolia.net/1/indexes/*/queries"
 GRAILED_APP_ID = "MNRWEFSS2Q"
 GRAILED_INDEX = "Listing_by_date_added_production"   # newest-first
+
+# Optional proxy for the Cloudflare-gated key fetch, e.g.
+# "http://user:pass@residential-host:8080" or "socks5h://host:1080".
+GRAILED_PROXY = os.environ.get("GRAILED_PROXY", "").strip()
 
 # grailed.com/shop URL param -> Algolia facet attribute. Each of these params
 # is a comma-separated list; values inside one param are OR'd, the params
@@ -587,6 +594,9 @@ class GrailedClient:
     def __post_init__(self):
         self._key = ""
         self._key_expiry = datetime.now(timezone.utc)
+        self._blocked = False   # set once if the key endpoint 403s (datacenter IP)
+        if GRAILED_PROXY:
+            self.session.proxies.update({"http": GRAILED_PROXY, "https": GRAILED_PROXY})
 
     def _ensure_key(self, force: bool = False):
         if not force and self._key and datetime.now(timezone.utc) < self._key_expiry:
@@ -603,10 +613,24 @@ class GrailedClient:
                 data["expires_at"].replace("Z", "+00:00")
             ) - timedelta(minutes=2)
         except (KeyError, ValueError):
-            self._key_expiry = datetime.now(timezone.utc) + timedelta(hours=12)
+            self._key_expiry = datetime.now(timezone.utc) + timedelta(minutes=30)
 
     def search(self, request_obj: dict) -> list[dict]:
-        self._ensure_key()
+        if self._blocked:
+            return []
+        try:
+            self._ensure_key()
+        except requests.HTTPError as e:
+            if e.response is not None and e.response.status_code in (401, 403):
+                self._blocked = True
+                log.warning(
+                    "Grailed: %s bloqueou o pedido da chave (HTTP %s). O endpoint "
+                    "recusa IPs de datacenter -- corre a partir de um IP residencial "
+                    "ou define GRAILED_PROXY. As buscas Grailed ficam suspensas.",
+                    GRAILED_KEYS_URL, e.response.status_code,
+                )
+                return []
+            raise
         for attempt in (1, 2):
             resp = self.session.post(
                 GRAILED_ALGOLIA_URL,
