@@ -1,0 +1,6 @@
+# Local runtime files -- never commit these
+searches.json
+vinted_monitor.log
+*.tmp
+__pycache__/
+*.pyc

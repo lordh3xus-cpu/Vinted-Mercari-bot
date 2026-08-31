@@ -1,0 +1,51 @@
+name: monitor
+
+on:
+  schedule:
+    # Every 15 min. GitHub queues cron jobs on a best-effort basis, so the
+    # real gap is often 15-25 min. Cron only runs on the default branch.
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}      # lets you trigger a run by hand from the Actions tab
+
+# Never let two runs overlap -- they'd race on the state-file commit.
+concurrency:
+  group: monitor
+  cancel-in-progress: false
+
+# Allow the job to push the updated state file back to the repo.
+permissions:
+  contents: write
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Poll once
+        env:
+          RUN_ONCE: "1"
+          SEARCHES_JSON: ${{ secrets.SEARCHES_JSON }}
+        run: python "niggack nigghan.py"
+
+      - name: Commit updated state
+        run: |
+          if git diff --quiet -- vinted_seen.json; then
+            echo "no state change"
+            exit 0
+          fi
+          git config user.name  "monitor-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase --autostash origin "${{ github.ref_name }}" || true
+          git add vinted_seen.json
+          git commit -m "state: seen items [skip ci]"
+          git push
