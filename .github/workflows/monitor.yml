@@ -35,6 +35,10 @@ jobs:
         env:
           RUN_ONCE: "1"
           SEARCHES_JSON: ${{ secrets.SEARCHES_JSON }}
+          # Optional: residential proxy for Grailed's Cloudflare-gated key
+          # fetch. Leave the secret unset and this is simply empty (Grailed
+          # then self-suspends). Only the key fetch goes through it.
+          GRAILED_PROXY: ${{ secrets.GRAILED_PROXY }}
         run: python "niggack nigghan.py"
 
       - name: Commit updated state
