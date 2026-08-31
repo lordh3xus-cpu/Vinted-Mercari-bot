@@ -43,7 +43,7 @@ import sys
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from urllib.parse import urlparse, parse_qs
 
@@ -130,6 +130,18 @@ _DEFAULT_SEARCHES = [
         "name": "Zegna (Mercari JP)",
         "provider": "mercari",
         "url": "https://jp.mercari.com/en/search?keyword=zegna&f42ae390-04ff-46ea-808b-f5d97cb45db4=b960227d-d0b4-4234-9585-7f1ae6650102&sort=created_time&order=desc&status=on_sale",
+        "webhook": "",
+    },
+    {
+        "name": "Rick Owens (Grailed)",
+        "provider": "grailed",
+        "url": "https://www.grailed.com/shop?query=Rick%20Owens&category=footwear.boots%2Cfootwear.leather%2Cfootwear.formal_shoes%2Cfootwear.hitop_sneakers%2Cfootwear.lowtop_sneakers%2Cfootwear.sandals%2Cfootwear.slip_ons&size=footwear.10%2Cfootwear.10.5%2Cfootwear.9%2Cfootwear.9.5%2Cfootwear.11",
+        "webhook": "",
+    },
+    {
+        "name": "Balenciaga (Grailed)",
+        "provider": "grailed",
+        "url": "https://www.grailed.com/shop?query=Balenciaga%203XL&size=footwear.10%2Cfootwear.10.5%2Cfootwear.9%2Cfootwear.9.5%2Cfootwear.11",
         "webhook": "",
     },
 ]
@@ -496,6 +508,131 @@ class MercariClient:
 
 
 # --------------------------------------------------------------------------
+# Grailed client
+# --------------------------------------------------------------------------
+# Grailed's search is an Algolia index. grailed.com/api/algolia/keys hands
+# out a short-lived (~24h) public search key -- that endpoint answers plain
+# requests even though the site HTML is behind Cloudflare -- and the Algolia
+# host itself has no bot protection.
+
+GRAILED_KEYS_URL = "https://www.grailed.com/api/algolia/keys"
+GRAILED_ALGOLIA_URL = "https://mnrwefss2q-dsn.algolia.net/1/indexes/*/queries"
+GRAILED_APP_ID = "MNRWEFSS2Q"
+GRAILED_INDEX = "Listing_by_date_added_production"   # newest-first
+
+# grailed.com/shop URL param -> Algolia facet attribute. Each of these params
+# is a comma-separated list; values inside one param are OR'd, the params
+# are AND'd (mirrors the site's own filter behaviour).
+_GRAILED_FACET_ATTR = {
+    "category": "category_path",
+    "size": "category_size",
+    "department": "department",
+    "condition": "condition",
+    "location": "location",
+    "marketplace": "marketplace",
+}
+
+
+def grailed_request_from_url(search_url: str) -> dict:
+    """Turn a grailed.com/shop URL into an Algolia request object aimed at
+    the newest-first index. Understands `query`, the comma-list facet params
+    above, and `price_min`/`price_max`."""
+    raw = parse_qs(urlparse(search_url).query, keep_blank_values=False)
+    q: dict[str, list] = {}
+    for key, values in raw.items():
+        q.setdefault(key[:-2] if key.endswith("[]") else key, []).extend(values)
+
+    def first(key, default=None):
+        return q[key][0] if q.get(key) else default
+
+    facet_filters = []
+    for param, attr in _GRAILED_FACET_ATTR.items():
+        values = []
+        for chunk in q.get(param, []):
+            values.extend(v for v in chunk.split(",") if v)
+        if values:
+            facet_filters.append([f"{attr}:{v}" for v in values])
+
+    numeric_filters = []
+    if first("price_min"):
+        numeric_filters.append(f"price>={int(float(first('price_min')))}")
+    if first("price_max"):
+        numeric_filters.append(f"price<={int(float(first('price_max')))}")
+
+    for ignored in ("designer", "designers", "sort"):
+        if q.get(ignored):
+            log.debug("grailed: a ignorar o parâmetro '%s' (não suportado)", ignored)
+
+    req = {
+        "indexName": GRAILED_INDEX,
+        "query": first("query", ""),
+        "hitsPerPage": 40,
+        "page": 0,
+    }
+    if facet_filters:
+        req["facetFilters"] = facet_filters
+    if numeric_filters:
+        req["numericFilters"] = numeric_filters
+    return req
+
+
+@dataclass
+class GrailedClient:
+    session: requests.Session = field(default_factory=lambda: _build_session({
+        "Accept": "application/json",
+        "Origin": "https://www.grailed.com",
+        "Referer": "https://www.grailed.com/",
+    }))
+
+    def __post_init__(self):
+        self._key = ""
+        self._key_expiry = datetime.now(timezone.utc)
+
+    def _ensure_key(self, force: bool = False):
+        if not force and self._key and datetime.now(timezone.utc) < self._key_expiry:
+            return
+        resp = self.session.post(
+            GRAILED_KEYS_URL, data="{}",
+            headers={"Content-Type": "application/json"}, timeout=REQUEST_TIMEOUT,
+        )
+        resp.raise_for_status()
+        data = resp.json().get("data", {})
+        self._key = data["search_key"]
+        try:
+            self._key_expiry = datetime.fromisoformat(
+                data["expires_at"].replace("Z", "+00:00")
+            ) - timedelta(minutes=2)
+        except (KeyError, ValueError):
+            self._key_expiry = datetime.now(timezone.utc) + timedelta(hours=12)
+
+    def search(self, request_obj: dict) -> list[dict]:
+        self._ensure_key()
+        for attempt in (1, 2):
+            resp = self.session.post(
+                GRAILED_ALGOLIA_URL,
+                params={"x-algolia-agent": "grailed-monitor"},
+                headers={
+                    "x-algolia-application-id": GRAILED_APP_ID,
+                    "x-algolia-api-key": self._key,
+                    "Content-Type": "application/json",
+                },
+                data=json.dumps({"requests": [request_obj]}),
+                timeout=REQUEST_TIMEOUT,
+            )
+            if resp.status_code in (401, 403) and attempt == 1:
+                self._ensure_key(force=True)   # key likely expired
+                continue
+            resp.raise_for_status()
+            break
+        try:
+            results = resp.json().get("results") or [{}]
+        except ValueError:
+            log.warning("Grailed/Algolia respondeu algo que não é JSON -- a ignorar esta ronda.")
+            return []
+        return [h for h in (results[0].get("hits") or []) if not h.get("sold") and not h.get("deleted")]
+
+
+# --------------------------------------------------------------------------
 # Seen-item tracking (so we only alert on genuinely new listings)
 # --------------------------------------------------------------------------
 
@@ -590,17 +727,50 @@ def mercari_listing(item: dict, client: "MercariClient") -> dict:
     }
 
 
-_LISTING_BUILDERS = {"vinted": vinted_listing, "mercari": mercari_listing}
+def grailed_listing(item: dict, client) -> dict:
+    designers = item.get("designers") or []
+    brand = item.get("designer_names") or ", ".join(
+        d.get("name", "") for d in designers if d.get("name")
+    )
+    cover = (item.get("cover_photo") or {}).get("url") or ""
+    photo_urls = [f"{cover}?w=800&auto=format"] if cover else []
+    user = item.get("user") or {}
+    username = user.get("username", "")
+    listed_at = item.get("created_at")  # already ISO8601 (e.g. 2026-08-31T19:57:39.008Z)
+
+    return {
+        "id": str(item.get("id")),
+        "title": item.get("title") or "(sem título)",
+        "amount": item.get("price"),
+        "currency": "USD",
+        "brand": brand,
+        "size": item.get("size", ""),
+        "seller": username,
+        "seller_url": f"https://www.grailed.com/{username}" if username else "",
+        "listed_at": listed_at,
+        "url": f"https://www.grailed.com/listings/{item.get('id')}",
+        "photo_urls": photo_urls,
+    }
+
+
+_LISTING_BUILDERS = {
+    "vinted": vinted_listing,
+    "mercari": mercari_listing,
+    "grailed": grailed_listing,
+}
 
 
 # --------------------------------------------------------------------------
 # Alerting -- swap this out for a webhook, Telegram bot, email, etc.
 # --------------------------------------------------------------------------
 
+_SOURCE_LABEL = {"vinted": "Vinted", "mercari": "Mercari JP", "grailed": "Grailed"}
+
+
 def notify(search: dict, listing: dict):
     provider = search.get("provider", "vinted")
     name = search["name"]
-    source = "Mercari JP" if provider == "mercari" else "Vinted"
+    source = _SOURCE_LABEL.get(provider, "Vinted")
 
     log.info(
         "NOVO [%s] %s | %s %s | %s | %s | %s",
@@ -625,19 +795,24 @@ IMAGES_PER_MESSAGE = 4
 LINK_BUTTON_LABEL = "Abrir produto original"
 
 # Accent colour of the embed, per source, so channels are recognisable at a
-# glance (Vinted teal / Mercari red).
-SOURCE_COLOR = {"Vinted": 0x09B1BA, "Mercari JP": 0xFF0211}
+# glance (Vinted teal / Mercari red / Grailed grey).
+SOURCE_COLOR = {"Vinted": 0x09B1BA, "Mercari JP": 0xFF0211, "Grailed": 0x4A4A4A}
 _DEFAULT_COLOR = 0xC9A24A
 
 
 def _price_field(amount, currency):
-    """(field name, field value) for the price. Yen gets a ¥ + thousands
-    separator and no decimals; everything else keeps its native currency."""
+    """(field name, field value) for the price. Yen and USD get a symbol +
+    thousands separator and no decimals; anything else keeps its raw form."""
     if currency == "JPY":
         try:
             return "Preço em ienes", f"¥ {int(float(amount)):,}"
         except (TypeError, ValueError):
             return "Preço em ienes", f"¥ {amount}"
+    if currency == "USD":
+        try:
+            return "Preço", f"$ {int(float(amount)):,}"
+        except (TypeError, ValueError):
+            return "Preço", f"$ {amount}"
     return "Preço", f"{amount} {currency}".strip()
 
 
@@ -740,10 +915,15 @@ def _plan_searches() -> list[tuple]:
     """Parse every search URL once, at startup. Returns
     (search, provider, query) tuples, skipping any entry with a URL that
     won't parse (logged, not fatal)."""
+    parsers = {
+        "vinted": params_from_search_url,
+        "mercari": mercari_condition_from_url,
+        "grailed": grailed_request_from_url,
+    }
     plan = []
     for search in SEARCHES:
         provider = search.get("provider", "vinted")
-        parser = mercari_condition_from_url if provider == "mercari" else params_from_search_url
+        parser = parsers.get(provider, params_from_search_url)
         try:
             query = parser(search["url"])
         except Exception as e:
@@ -766,9 +946,14 @@ def run():
         log.error("Nenhuma busca válida configurada. A sair.")
         return
 
+    factories = {
+        "vinted": lambda: VintedClient(domain=DOMAIN),
+        "mercari": MercariClient,
+        "grailed": GrailedClient,
+    }
     clients: dict = {}
     for provider in {p for _, p, _ in plan}:
-        clients[provider] = VintedClient(domain=DOMAIN) if provider == "vinted" else MercariClient()
+        clients[provider] = factories[provider]()
 
     log.info(
         "Monitor iniciado. %d busca(s), ronda a cada ~%ds, até %d foto(s) por alerta.",
