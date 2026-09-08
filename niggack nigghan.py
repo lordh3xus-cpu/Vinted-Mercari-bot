@@ -109,6 +109,11 @@ _DEFAULT_SEARCHES = [
         "webhook": "",
     },
     {
+        "name": "Maison Margiela sapatos (Vinted)",
+        "url": "https://www.vinted.pt/catalog?search_text=maison%20margiela&catalog[]=1242",
+        "webhook": "",
+    },
+    {
         "name": "Golden Goose (Mercari JP)",
         "provider": "mercari",
         "url": "https://jp.mercari.com/en/search?keyword=golden%20goose&f42ae390-04ff-46ea-808b-f5d97cb45db4=b960227d-d0b4-4234-9585-7f1ae6650102&sort=created_time&order=desc&status=on_sale",
@@ -230,14 +235,32 @@ def _build_session(extra_headers: Optional[dict] = None) -> requests.Session:
     return session
 
 
+# Vinted's site URL uses short filter names (`catalog[]`, `brand[]`, ...);
+# the catalog API wants the `*_ids[]` form. Anything already in `*_ids[]`
+# form (or plain like `search_text`) passes straight through.
+_VINTED_PARAM_ALIAS = {
+    "catalog[]": "catalog_ids[]",
+    "brand[]": "brand_ids[]",
+    "size[]": "size_ids[]",
+    "status[]": "status_ids[]",
+    "color[]": "color_ids[]",
+    "material[]": "material_ids[]",
+    "video_game_rating[]": "video_game_rating_ids[]",
+}
+# Session / tracking junk that a copied browser URL carries -- drop it.
+_VINTED_PARAM_DROP = {"search_id", "time", "page", "disabled_personalization"}
+
+
 def params_from_search_url(search_url: str) -> dict:
     """Take a URL copied straight from Vinted's search page (with whatever
     brand/size/condition/price filters you picked on the site) and turn its
     query string into params for the catalog API."""
-    query = urlparse(search_url).query
-    parsed = parse_qs(query, keep_blank_values=False)
+    parsed = parse_qs(urlparse(search_url).query, keep_blank_values=False)
     params = {}
     for key, values in parsed.items():
+        if key in _VINTED_PARAM_DROP:
+            continue
+        key = _VINTED_PARAM_ALIAS.get(key, key)
         # requests will repeat a key for every item in a list value, which
         # matches how Vinted expects repeated keys like size_ids[]=1&size_ids[]=2
         params[key] = values if len(values) > 1 else values[0]
