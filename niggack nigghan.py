@@ -132,6 +132,18 @@ _DEFAULT_SEARCHES = [
         "url": "https://jp.mercari.com/en/search?keyword=zegna&f42ae390-04ff-46ea-808b-f5d97cb45db4=b960227d-d0b4-4234-9585-7f1ae6650102&sort=created_time&order=desc&status=on_sale",
         "webhook": "",
     },
+    {
+        "name": "TAG Heuer Carrera (Mercari JP)",
+        "provider": "mercari",
+        "url": "https://jp.mercari.com/en/search?keyword=tag%20heuer%20carrera",
+        "webhook": "",
+    },
+    {
+        "name": "TAG Heuer Aquaracer (Mercari JP)",
+        "provider": "mercari",
+        "url": "https://jp.mercari.com/en/search?keyword=tag%20heuer%20aquaracer",
+        "webhook": "",
+    },
 ]
 
 
