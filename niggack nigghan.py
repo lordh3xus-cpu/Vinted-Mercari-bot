@@ -214,6 +214,13 @@ MERCARI_ITEM_DELAY = 1.0
 # a busy search can't "wrap around" and re-alert things.
 SEEN_CAP = 1000
 
+# If building/sending an item's alert throws (network blip, Discord hiccup,
+# etc.), the item is *not* marked seen -- it's retried on the next polling
+# round instead of silently vanishing. After this many failed rounds for the
+# same item, give up and mark it seen anyway so a permanently-broken item
+# can't retry forever.
+MAX_NOTIFY_ATTEMPTS = 3
+
 
 def _build_session(extra_headers: Optional[dict] = None) -> requests.Session:
     """A requests session that retries transient failures (dropped
@@ -551,6 +558,17 @@ def save_seen(seen: dict):
     os.replace(tmp, STATE_FILE)
 
 
+def _search_state(seen: dict, name: str) -> tuple[list, dict]:
+    """(seen_ids, failed_attempt_counts) for one search, tolerating the
+    original state format (a plain list of IDs, no retry tracking)."""
+    raw = seen.get(name)
+    if raw is None:
+        return [], {}
+    if isinstance(raw, list):  # pre-retry-tracking state file
+        return raw, {}
+    return raw.get("seen", []), raw.get("failed", {})
+
+
 # --------------------------------------------------------------------------
 # Per-provider: raw API item -> common listing shape
 # --------------------------------------------------------------------------
@@ -835,7 +853,7 @@ def run():
             round_start = time.monotonic()
             for search, provider, query in plan:
                 name = search["name"]
-                previous = seen.get(name, [])
+                previous, failed_counts = _search_state(seen, name)
                 seen_set = set(previous)
                 first_time = name not in seen
 
@@ -850,6 +868,7 @@ def run():
 
                 new_items = [it for it in items if str(it.get("id")) not in seen_set]
                 added: list[str] = []
+                next_failed: dict[str, int] = {}
 
                 if first_time and PRIME_ON_FIRST_RUN:
                     added = [str(it.get("id")) for it in new_items]
@@ -870,15 +889,33 @@ def run():
 
                     build = _LISTING_BUILDERS[provider]
                     for item in reversed(to_alert):  # oldest-of-the-new first
+                        item_id = str(item.get("id"))
+                        attempt = failed_counts.get(item_id, 0) + 1
                         try:
                             notify(search, build(item, clients.get(provider)))
+                            added.append(item_id)
                         except Exception as e:
-                            log.exception("Falha ao processar um item de '%s': %s", name, e)
-                        added.append(str(item.get("id")))  # mark seen either way
+                            if attempt >= MAX_NOTIFY_ATTEMPTS:
+                                log.exception(
+                                    "'%s': falha ao alertar %s (tentativa %d/%d) -- "
+                                    "a desistir e marcar como visto: %s",
+                                    name, item_id, attempt, MAX_NOTIFY_ATTEMPTS, e,
+                                )
+                                added.append(item_id)
+                            else:
+                                log.exception(
+                                    "'%s': falha ao alertar %s (tentativa %d/%d) -- "
+                                    "nova tentativa na próxima ronda: %s",
+                                    name, item_id, attempt, MAX_NOTIFY_ATTEMPTS, e,
+                                )
+                                next_failed[item_id] = attempt
                         if provider == "mercari":
                             time.sleep(MERCARI_ITEM_DELAY)
 
-                seen[name] = _trim_seen(previous, added)
+                seen[name] = {
+                    "seen": _trim_seen(previous, added),
+                    "failed": next_failed,
+                }
 
             save_seen(seen)
 
