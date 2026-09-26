@@ -33,6 +33,7 @@ Edit the SEARCHES list below to define what you want to track.
 """
 
 import base64
+import html as htmlmod
 import json
 import os
 import random
@@ -383,33 +384,132 @@ def _json_items(resp, source: str) -> list[dict]:
 # --------------------------------------------------------------------------
 # Vinted client
 # --------------------------------------------------------------------------
+#
+# Vinted put the old `api/v2/catalog/items` JSON endpoint behind a Cloudflare
+# managed challenge (as of ~2026-09-14) -- a plain `requests` session gets a
+# 403 with `Cf-Mitigated: challenge` and can never pass it (no JS engine).
+# The `/catalog` search *page* itself is not behind that challenge and
+# renders its results straight into the HTML (`data-testid="grid-item"`
+# blocks), so the client below scrapes that instead of calling the API.
+#
+# Each item's `<img alt="...">` conveniently packs everything we need into
+# one string in a fixed order, e.g.:
+#   "Ball Star Golden Goose, Marca: Golden Goose, Estado: Muito bom, Tamanho: 41, 250.00 €, 263.20 €"
+# (title, brand, condition, size, base price, price incl. buyer protection).
+# This is Vinted's own site markup, not a documented API, so a future
+# redesign could break this parsing the same way it broke the old endpoint.
+
+_VINTED_ITEM_CONTAINER_RE = re.compile(r'data-testid="product-item-id-(\d+)"')
+_VINTED_ITEM_HREF_RE = re.compile(r'href="(/items/\d+[^"]*)"')
+_VINTED_ITEM_IMG_RE = re.compile(r'<img src="([^"]*)"[^>]*alt="([^"]*)"')
+
+# The trailing ", <price> <symbol>, <total> <symbol>" pair is always present;
+# "Marca:"/"Estado:"/"Tamanho:" are each optional (e.g. accessories often
+# have no brand, some categories have no size) so they're peeled off the
+# remaining header text right-to-left instead of one rigid all-or-nothing
+# pattern -- a listing missing a field shouldn't lose its price too.
+_VINTED_PRICE_TAIL_RE = re.compile(
+    r', (?P<price>\d+(?:[.,]\d+)?)\s*(?P<symbol>[^\d,]+),\s*'
+    r'(?P<total>\d+(?:[.,]\d+)?)\s*(?P<symbol2>[^\d,]+)$'
+)
+_VINTED_SIZE_RE = re.compile(r', Tamanho: (?P<size>.*)$')
+_VINTED_CONDITION_RE = re.compile(r', Estado: (?P<condition>.*)$')
+_VINTED_BRAND_RE = re.compile(r', Marca: (?P<brand>.*)$')
+_VINTED_CURRENCY_BY_SYMBOL = {
+    "€": "EUR", "£": "GBP", "$": "USD", "zł": "PLN", "Kč": "CZK", "kr": "SEK",
+}
+
+
+def _parse_vinted_alt_text(alt_text: str) -> tuple[str, str, str, Optional[str], str]:
+    """(title, brand, size, price_amount, currency_code) from one item's
+    `<img alt="...">`, tolerating missing Marca:/Estado:/Tamanho: segments."""
+    price_m = _VINTED_PRICE_TAIL_RE.search(alt_text)
+    if not price_m:
+        return alt_text, "", "", None, ""  # unrecognised shape -- surface it anyway
+
+    header = alt_text[:price_m.start()]
+    amount = price_m["price"].replace(",", ".")
+    currency = _VINTED_CURRENCY_BY_SYMBOL.get(price_m["symbol"].strip(), "")
+
+    size = ""
+    size_m = _VINTED_SIZE_RE.search(header)
+    if size_m:
+        size = size_m["size"]
+        header = header[:size_m.start()]
+
+    condition_m = _VINTED_CONDITION_RE.search(header)
+    if condition_m:
+        header = header[:condition_m.start()]
+
+    brand = ""
+    brand_m = _VINTED_BRAND_RE.search(header)
+    if brand_m:
+        brand = brand_m["brand"]
+        header = header[:brand_m.start()]
+
+    return header, brand, size, amount, currency
+
+
+def _parse_vinted_catalog_html(html_text: str, domain: str) -> list[dict]:
+    """Scrape one `/catalog` search-results page into raw item dicts shaped
+    just like the old API's items, so `vinted_listing()` doesn't need to
+    know which source produced them."""
+    containers = list(_VINTED_ITEM_CONTAINER_RE.finditer(html_text))
+    items = []
+    for i, m in enumerate(containers):
+        end = containers[i + 1].start() if i + 1 < len(containers) else len(html_text)
+        block = html_text[m.start():end]
+        item_id = m.group(1)
+
+        href_m = _VINTED_ITEM_HREF_RE.search(block)
+        img_m = _VINTED_ITEM_IMG_RE.search(block)
+        if not href_m or not img_m:
+            continue  # promo/ad slot or a markup shape we don't recognise
+        url = f"https://{domain}{htmlmod.unescape(href_m.group(1).split('?')[0])}"
+        thumb_url, alt_text = img_m.group(1), htmlmod.unescape(img_m.group(2))
+        title, brand, size, amount, currency = _parse_vinted_alt_text(alt_text)
+
+        items.append({
+            "id": item_id,
+            "title": title,
+            "price": {"amount": amount, "currency_code": currency},
+            "brand_title": brand,
+            "size_title": size,
+            "user": {},  # not exposed by the search grid, only on the item page
+            "url": url,
+            "photo": {"url": thumb_url},
+        })
+    return items
+
 
 @dataclass
 class VintedClient:
     domain: str
     session: requests.Session = field(
-        default_factory=lambda: _build_session({"Accept": "application/json, text/plain, */*"})
+        default_factory=lambda: _build_session({
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        })
     )
 
     def __post_init__(self):
         self._prime_session()
 
     def _prime_session(self):
-        """Vinted requires a valid session/CSRF cookie before the API will
-        answer; hitting the homepage once picks that up automatically."""
+        """Vinted requires a valid session cookie before the catalog page
+        will render results; hitting the homepage once picks that up
+        automatically."""
         resp = self.session.get(f"https://{self.domain}/", timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
 
-    def search(self, params: dict, per_page: int = 20) -> list[dict]:
-        url = f"https://{self.domain}/api/v2/catalog/items"
-        query = {"per_page": per_page, **params}
-        resp = self.session.get(url, params=query, timeout=REQUEST_TIMEOUT)
-        if resp.status_code == 401 or resp.status_code == 403:
-            # session/CSRF likely expired -- refresh and retry once
+    def search(self, params: dict) -> list[dict]:
+        url = f"https://{self.domain}/catalog"
+        resp = self.session.get(url, params=params, timeout=REQUEST_TIMEOUT)
+        if resp.status_code in (401, 403):
+            # session cookie likely expired -- refresh and retry once
             self._prime_session()
-            resp = self.session.get(url, params=query, timeout=REQUEST_TIMEOUT)
+            resp = self.session.get(url, params=params, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
-        return _json_items(resp, "Vinted")
+        return _parse_vinted_catalog_html(resp.text, self.domain)
 
 
 # --------------------------------------------------------------------------
