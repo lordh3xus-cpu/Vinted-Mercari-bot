@@ -2707,10 +2707,6 @@
   },
   "Maison Margiela (Mercari JP)": {
     "seen": [
-      "m69586245934",
-      "m54284604928",
-      "m57874167081",
-      "m22237734842",
       "m74524978212",
       "m38435196563",
       "m90337487006",
@@ -3706,7 +3702,11 @@
       "m73551909743",
       "m90794982674",
       "m73433662047",
-      "m26779954902"
+      "m26779954902",
+      "m53408787988",
+      "m27022563631",
+      "m18732038192",
+      "m37408841541"
     ],
     "failed": {}
   },
@@ -3979,7 +3979,6 @@
   "Balenciaga (Grailed)": [],
   "Maison Margiela sapatos (Vinted)": {
     "seen": [
-      "10162733449",
       "10152288866",
       "10164467185",
       "10161586994",
@@ -4978,7 +4977,8 @@
       "10297875777",
       "10298111718",
       "10298361883",
-      "10298464808"
+      "10298464808",
+      "10298416350"
     ],
     "failed": {}
   },
@@ -5664,7 +5664,15 @@
       "m92928424496",
       "2JXriXvUZHZ5zDZbDu2kVq",
       "m78027851329",
-      "2JXryp3tk67Qrwni69RJES"
+      "2JXryp3tk67Qrwni69RJES",
+      "2JXtCpmrkRQddzCQx9RCgg",
+      "2JXtCsqh3GuHz4Byy5iyyG",
+      "2JXtCwDRaVuud537bRwmxj",
+      "2JXtGsoaaUmEuov8agH3pB",
+      "2JXtGtWN6jn3gfj6CHjkAD",
+      "2JXtGw89BrqyuKyRbMiCye",
+      "2JXtGxMizZiZfctNVqEJ3b",
+      "2JXtHApheqfU9izoCvWFck"
     ],
     "failed": {}
   },
