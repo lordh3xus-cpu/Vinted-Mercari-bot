@@ -1006,12 +1006,6 @@
   },
   "Zegna (tamanhos selecionados)": {
     "seen": [
-      "9841678579",
-      "9843257177",
-      "9843546180",
-      "9843827277",
-      "9845302255",
-      "9846881923",
       "9848055066",
       "9848177803",
       "9848775467",
@@ -2005,7 +1999,13 @@
       "10532327287",
       "10535831708",
       "10536217728",
-      "10536293277"
+      "10536293277",
+      "10512798065",
+      "10522427590",
+      "10522285543",
+      "10527369628",
+      "10532579873",
+      "10533465492"
     ],
     "failed": {}
   },
@@ -3281,11 +3281,6 @@
   },
   "Maison Margiela (Mercari JP)": {
     "seen": [
-      "m40740728250",
-      "m26337700900",
-      "m91514197395",
-      "m44238385988",
-      "m38217131512",
       "m15966033129",
       "m63824982075",
       "m28269057054",
@@ -4280,7 +4275,12 @@
       "m24417363623",
       "m16369383623",
       "m82830706561",
-      "m15447904524"
+      "m15447904524",
+      "m32965825162",
+      "m79187371976",
+      "m18320620785",
+      "m54328730420",
+      "m90584082948"
     ],
     "failed": {}
   },
@@ -6581,7 +6581,24 @@
       "2JYMW75GuV92LpYnW2dtvp",
       "m86068888776",
       "2JYeEA3Wrux3KGvYytRQf7",
-      "m14474401628"
+      "m14474401628",
+      "2JYfLnegtAfuNhXToyMnE4",
+      "2JYfLmzUXKJ2xERaFZR3qJ",
+      "2JYfLunhp2fYPmghhxvoju",
+      "2JYfLyss8EbLQZVtFCEVtn",
+      "2JYfLzYZNmvMMNMAhBVRWi",
+      "2JYfLzrdPCeLrQAqhpKi3Y",
+      "2JYfM3YC6JzA5Yp3AhHbKT",
+      "2JYfM3zauZ4LGmMSDGdsot",
+      "2JYfM766UmzZSkWmxQTFXV",
+      "2JYfMTPHnacftEMVLg7tSm",
+      "2JYfMVhKUmTM7SfQng4He6",
+      "2JYfQsfiPpU9xUYmpAS2AA",
+      "2JYfQtBxVqebdEAe5LqMj5",
+      "2JYfQtRKHiptXruoZAWLoi",
+      "2JYfQvXPauUK84y4RRzbwn",
+      "2JYfQyBsxqAYLEaz8fVGXu",
+      "2JYfTjUETdPGPTUXJzY5fA"
     ],
     "failed": {}
   },
