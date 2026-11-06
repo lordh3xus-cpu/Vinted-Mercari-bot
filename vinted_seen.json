@@ -1,7 +1,6 @@
 {
   "Golden Goose (tamanhos selecionados)": {
     "seen": [
-      "10566724051",
       "10566143312",
       "10566756777",
       "10564622886",
@@ -1000,7 +999,8 @@
       "10679644770",
       "10680163277",
       "10649675998",
-      "10682755255"
+      "10682755255",
+      "10682277412"
     ],
     "failed": {}
   },
@@ -3307,12 +3307,6 @@
   },
   "Maison Margiela (Mercari JP)": {
     "seen": [
-      "m19835586492",
-      "m46701069300",
-      "m27191812918",
-      "m64051577060",
-      "m22113036523",
-      "m61943150066",
       "m53634249816",
       "m51477418438",
       "m18383212711",
@@ -4306,7 +4300,13 @@
       "m95474167693",
       "m80648479833",
       "m51699459370",
-      "m95830303076"
+      "m95830303076",
+      "m89764659272",
+      "m47687659768",
+      "m91781954014",
+      "m14520617979",
+      "m79422787595",
+      "m55027867009"
     ],
     "failed": {}
   },
@@ -5691,13 +5691,6 @@
   },
   "TAG Heuer Carrera (Mercari JP)": {
     "seen": [
-      "2JWkUX6xcMgfsWGqRXDMh5",
-      "2JWkUYgQxAdgDSHxMJjms3",
-      "2JWkUai8chkJkJSs8MtFmG",
-      "m55872247501",
-      "m97840209023",
-      "2JWSPcrjLomVqAnQ6jAqhH",
-      "2JW7Dc5H6vz6ixt3PvA3hp",
       "m72179414313",
       "2JWm67BWdKUVAVwusG3jHv",
       "2JWm94vX4LytGeCCZtGHGs",
@@ -6690,7 +6683,14 @@
       "m14009675767",
       "2JZAScAjvEhAksKa8ESfVf",
       "2JZAScEvkBL9NHaNVuwGZZ",
-      "2JZASd5YJvMJDFwyyfygbu"
+      "2JZASd5YJvMJDFwyyfygbu",
+      "2JZAcwaStK8DFK9xq5BxHg",
+      "m22230549673",
+      "2JZAoF6pmtqrWWwT5pq42L",
+      "m33387219911",
+      "2JZB4pStt2E3iXcgwnGEFr",
+      "2JZB5zF3ePfDEVdTsRHiZ4",
+      "2JZB5zzzyhrMcHKUFSXwzW"
     ],
     "failed": {}
   },
@@ -6854,7 +6854,8 @@
       "m85039368485",
       "2JZ8XRg7opxo4XZmWt3uYF",
       "2JZ8XRkysRe4KEjRgwbr3S",
-      "2JZ8XRpta82tvpXVMVz8qq"
+      "2JZ8XRpta82tvpXVMVz8qq",
+      "m94666855302"
     ],
     "failed": {}
   }
