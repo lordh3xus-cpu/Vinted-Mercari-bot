@@ -1,8 +1,6 @@
 {
   "Golden Goose (tamanhos selecionados)": {
     "seen": [
-      "10574929257",
-      "5838710662",
       "10574994752",
       "10572476604",
       "10575411107",
@@ -1000,14 +998,14 @@
       "10691754985",
       "10689272482",
       "10689343902",
-      "10695561071"
+      "10695561071",
+      "10696576880",
+      "10695960720"
     ],
     "failed": {}
   },
   "Zegna (tamanhos selecionados)": {
     "seen": [
-      "10057474632",
-      "10047624593",
       "10044900569",
       "10049050227",
       "10041964222",
@@ -2005,7 +2003,9 @@
       "10691385097",
       "10692028762",
       "10691757890",
-      "10695627693"
+      "10695627693",
+      "10695473764",
+      "10696409858"
     ],
     "failed": {}
   },
@@ -3310,12 +3310,6 @@
   },
   "Maison Margiela (Mercari JP)": {
     "seen": [
-      "m33602745401",
-      "m58032347004",
-      "m45523860779",
-      "m80934363519",
-      "m33263504347",
-      "m88266064566",
       "m87977442830",
       "m64648502670",
       "m22151980481",
@@ -4309,7 +4303,13 @@
       "m87631715174",
       "m11823010229",
       "m14840670954",
-      "m62508277107"
+      "m62508277107",
+      "m59475028974",
+      "m17810922242",
+      "m60324709818",
+      "m18214198491",
+      "m44238385988",
+      "m26895831473"
     ],
     "failed": {}
   },
@@ -4692,9 +4692,6 @@
   "Balenciaga (Grailed)": [],
   "Maison Margiela sapatos (Vinted)": {
     "seen": [
-      "10456207325",
-      "10447408045",
-      "10457023908",
       "10457147815",
       "10459916799",
       "10458805568",
@@ -5691,22 +5688,15 @@
       "10694534260",
       "10694776942",
       "10695404703",
-      "10690435525"
+      "10690435525",
+      "10695686976",
+      "10695736577",
+      "10696205780"
     ],
     "failed": {}
   },
   "TAG Heuer Carrera (Mercari JP)": {
     "seen": [
-      "2JWmfe4rSP2oBgDXKRNmFp",
-      "2JWmg2Vv7ctnQtqnNqkTgH",
-      "m59076352099",
-      "2JWmsFJejooKBWxgkXw48p",
-      "2JTyY5S98cL6mg9UTneqaA",
-      "2JWn5G8aeX26U5R3ZUTXqN",
-      "2JWn5NSWTosFp8XahDKKqa",
-      "m26238310893",
-      "2JNiD5Qdq7gDqFuFiPu5kG",
-      "2JWo2cNPWtNbwFwzpjVZqx",
       "m77178136922",
       "2JLaX96UqYDjinqkGxZ8rh",
       "2JWokdCK6q3mw6drK2Y5Jo",
@@ -6696,7 +6686,17 @@
       "2JZBP9cW5Byj4x87L5iYk5",
       "m33892462802",
       "m97642653226",
-      "m26431628496"
+      "m26431628496",
+      "2JZDPyqEYmmab8xHoDSMzQ",
+      "2JZDPzVNAnBrtFXaidPCb6",
+      "2JZDQ3JCc8LJU8R8Kwp388",
+      "2JZDQ45aN3XET6GomhHbHH",
+      "2JZDQ4mx3EVfuShM2YsDXA",
+      "2JZDYL8oUTixJYTAC7BL64",
+      "2JZDZXv8t4Tchi5zQ636GP",
+      "2JZDc2aDL9xXxJrEwaPyVY",
+      "2JZDeWK2cfbTXJ5cEy8ydK",
+      "2JZDeWT4zcLppdsj5bgoF3"
     ],
     "failed": {}
   },
