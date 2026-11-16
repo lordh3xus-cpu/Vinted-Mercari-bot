@@ -1,7 +1,6 @@
 {
   "Golden Goose (tamanhos selecionados)": {
     "seen": [
-      "10697981527",
       "10669899271",
       "10686249140",
       "10669684857",
@@ -1000,7 +999,8 @@
       "10771872998",
       "10771735986",
       "10771899715",
-      "10833076367"
+      "10833076367",
+      "10823638490"
     ],
     "failed": {}
   },
@@ -2011,8 +2011,6 @@
   },
   "Omega x Swatch": {
     "seen": [
-      "10435571395",
-      "10432801292",
       "10434060001",
       "10440477886",
       "10440744369",
@@ -3010,7 +3008,9 @@
       "10831616815",
       "10831637930",
       "10771256047",
-      "10771432783"
+      "10771432783",
+      "10772227388",
+      "10833727289"
     ],
     "failed": {}
   },
@@ -3345,11 +3345,6 @@
   },
   "Maison Margiela (Mercari JP)": {
     "seen": [
-      "m74546576666",
-      "m75069132906",
-      "m40868188791",
-      "m98200350072",
-      "m72210179154",
       "m89190031501",
       "m85969979612",
       "m96933179616",
@@ -4344,7 +4339,12 @@
       "m40132298107",
       "m22237734842",
       "m86302060472",
-      "m81957524675"
+      "m81957524675",
+      "m42855171172",
+      "m50031165342",
+      "m70216944769",
+      "m29989987750",
+      "m97244499220"
     ],
     "failed": {}
   },
@@ -5758,21 +5758,6 @@
   },
   "TAG Heuer Carrera (Mercari JP)": {
     "seen": [
-      "2JWzMhZQawfWXeiRwBirM6",
-      "2JWzNc5yu8WDZPJR58XD7P",
-      "m27477244535",
-      "m33338331461",
-      "m44524764383",
-      "2JSrLNQ86LGHwQhbt3ey9v",
-      "2JTxZqEsyV3oVqwoJxK4sm",
-      "m91752718374",
-      "m60773798203",
-      "2JH683TaAvHCa2L3JFAucV",
-      "m85826359532",
-      "2JUEVtKkwrpKTN9eenCEXn",
-      "2JX3tZkFgLc5sn3FUFoUvD",
-      "2JX3x7JfjZ7GrovBMEpUPE",
-      "2JUutJQbX9uAwoTzt7N6RP",
       "2JX44FyP8tzARQiJ8ouQhB",
       "m96315421569",
       "m75928331411",
@@ -6757,7 +6742,22 @@
       "m39301811270",
       "m17248016925",
       "m50285403714",
-      "m44409703650"
+      "m44409703650",
+      "2JZcaTzbaAVS6EAQQPUDqK",
+      "2JZcaVE3uXjmyBsngGvhk2",
+      "2JZcaVeNS2jBvF5q4fiLaf",
+      "2JZcaWeCQmNsAtZ8VyZgLp",
+      "2JZcaXc4j6ynmr2VB34bkG",
+      "2JZcaYF66TJqCqUC2BZexq",
+      "2JZcaZ38oK8bA5amC655J4",
+      "2JZcaZS3xG5PmCKcEaM6qU",
+      "2JZcad9GUqZZRNrN6kMm4J",
+      "2JZcadp37jqz76WaphXZ2e",
+      "2JZcadsS2XtAnB8crJ4JFb",
+      "2JZcaiM6Wfe5ChyGhTnxUg",
+      "2JZcajmejVrEzBbtresuio",
+      "2JZcak68t5uPLXdstWLFca",
+      "2JZcmmFbKPfG2yCkTiWXu7"
     ],
     "failed": {}
   },
